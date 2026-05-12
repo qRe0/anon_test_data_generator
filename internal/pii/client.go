@@ -53,7 +53,7 @@ func (c *PresidioClient) Analyze(ctx context.Context, text, language string) ([]
 	if err != nil {
 		return nil, fmt.Errorf("http post: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))

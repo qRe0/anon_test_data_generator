@@ -65,7 +65,7 @@ func (r *mockRows) Scan(dest ...any) error         {
 			continue
 		}
 		rv := reflect.ValueOf(dest[i])
-		if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		if rv.Kind() != reflect.Pointer || rv.IsNil() {
 			continue
 		}
 		target := reflect.Indirect(rv)

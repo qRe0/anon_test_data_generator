@@ -39,7 +39,7 @@ func TestPresidioClient_Analyze_Success(t *testing.T) {
 			t.Errorf("req = %+v", req)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]PresidioEntity{
+		_ = json.NewEncoder(w).Encode([]PresidioEntity{
 			{EntityType: "PERSON", Start: 0, End: 8, Score: 0.95},
 		})
 	}))
@@ -84,7 +84,7 @@ func TestPresidioClient_Analyze_ConnectionRefused(t *testing.T) {
 
 func TestPresidioClient_Analyze_InvalidJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("not-json"))
+		_, _ = w.Write([]byte("not-json"))
 	}))
 	defer srv.Close()
 
@@ -98,11 +98,11 @@ func TestPresidioClient_Analyze_InvalidJSON(t *testing.T) {
 func TestPresidioClient_DefaultLanguage(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req PresidioRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		if req.Language != "en" {
 			t.Errorf("expected default language 'en', got %q", req.Language)
 		}
-		json.NewEncoder(w).Encode([]PresidioEntity{})
+		_ = json.NewEncoder(w).Encode([]PresidioEntity{})
 	}))
 	defer srv.Close()
 
@@ -164,10 +164,10 @@ func TestClassifier_Classify_MultipleColumns(t *testing.T) {
 	// Use httptest-based mock to have dynamic responses per call.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req PresidioRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		callCount++
 		entities := analyzeFn(req.Text)
-		json.NewEncoder(w).Encode(entities)
+		_ = json.NewEncoder(w).Encode(entities)
 	}))
 	defer srv.Close()
 

@@ -121,7 +121,7 @@ func ValidationErrorList(errs []error) string {
 		return ""
 	}
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("%d validation error(s):\n", len(errs)))
+	fmt.Fprintf(&b, "%d validation error(s):\n", len(errs))
 	for _, e := range errs {
 		b.WriteString("  - " + e.Error() + "\n")
 	}
