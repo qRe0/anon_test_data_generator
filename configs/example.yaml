@@ -1,0 +1,72 @@
+# Example configuration for anon_test_data_generator.
+# This file demonstrates the full set of configuration options.
+
+global:
+  dsn: "postgres://admin:secret@localhost:5432/staging_db?sslmode=disable"
+  seed: 42
+  locale: "en_US"
+  batch_size: 2000
+
+tables:
+  - name: "public.users"
+    count: 10000
+    cleanup_strategy: "truncate"
+    columns:
+      - name: "id"
+        generator: "autoincrement"
+
+      - name: "full_name"
+        generator: "person.name"
+        params:
+          gender: "mixed"
+
+      - name: "email"
+        generator: "internet.email"
+        is_unique: true
+        params:
+          domain: "example-test.com"
+
+      - name: "phone_number"
+        generator: "phone.mobile"
+        transformer: "masking.partial"
+        params:
+          pattern: "+1 (***) ***-**-##"
+
+      - name: "birth_date"
+        generator: "time.date"
+        params:
+          min_age: 18
+          max_age: 90
+
+  - name: "public.orders"
+    count: 50000
+    cleanup_strategy: "delete"
+    columns:
+      - name: "id"
+        generator: "uuid"
+
+      - name: "user_id"
+        generator: "relation.foreign_key"
+        params:
+          table: "public.users"
+          column: "id"
+          distribution: "normal"
+
+      - name: "order_status"
+        generator: "collection.random_choice"
+        params:
+          choices: ["NEW", "PAID", "SHIPPED", "CANCELLED"]
+          weights: [10, 50, 30, 10]
+
+      - name: "total_amount"
+        generator: "finance.amount"
+        params:
+          min: 100.00
+          max: 150000.00
+          decimals: 2
+
+      - name: "created_at"
+        generator: "time.timestamp"
+        params:
+          min: "2023-01-01 00:00:00"
+          max: "now"
