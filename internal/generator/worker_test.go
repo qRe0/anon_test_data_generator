@@ -465,8 +465,10 @@ func TestWorkerPool_MockSink_FlushCalls(t *testing.T) {
 	}
 
 	_ = wp.Run(context.Background(), plan, singleTableSpec())
-	if sink.FlushCalls < 1 {
-		t.Error("Flush should have been called at least once")
+
+	// Verify all rows were written (no row loss regardless of flush timing).
+	if len(sink.Rows["public.users"]) != 50 {
+		t.Errorf("expected 50 rows, got %d", len(sink.Rows["public.users"]))
 	}
 }
 

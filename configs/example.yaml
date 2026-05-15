@@ -9,7 +9,7 @@ global:
 
 tables:
   - name: "public.users"
-    count: 10000
+    count: 100000
     cleanup_strategy: "truncate"
     columns:
       - name: "id"
@@ -24,22 +24,22 @@ tables:
         generator: "internet.email"
         is_unique: true
         params:
-          domain: "example-test.com"
+          domain: "test.com"
 
-      - name: "phone_number"
+      - name: "phone"
         generator: "phone.mobile"
         transformer: "masking.partial"
         params:
-          pattern: "+1 (***) ***-**-##"
+          pattern: "+375(**)***-**-##"
 
       - name: "birth_date"
         generator: "time.date"
         params:
           min_age: 18
-          max_age: 90
+          max_age: 40
 
   - name: "public.orders"
-    count: 50000
+    count: 500000
     cleanup_strategy: "delete"
     columns:
       - name: "id"
@@ -52,13 +52,13 @@ tables:
           column: "id"
           distribution: "normal"
 
-      - name: "order_status"
+      - name: "status"
         generator: "collection.random_choice"
         params:
           choices: ["NEW", "PAID", "SHIPPED", "CANCELLED"]
           weights: [10, 50, 30, 10]
 
-      - name: "total_amount"
+      - name: "amount"
         generator: "finance.amount"
         params:
           min: 100.00

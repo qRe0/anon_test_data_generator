@@ -165,56 +165,54 @@ func (wp *WorkerPool) runProducer(ctx context.Context, tableName string, spec *T
 const flushInterval = 500 * time.Millisecond
 
 func (wp *WorkerPool) runBatcher(ctx context.Context, dataCh <-chan batchMsg) error {
-	buffers := map[string][]Row{}
+	var pending []Row
+	var pendingTable string
+
+	flushPending := func() error {
+		if len(pending) == 0 {
+			return nil
+		}
+		if err := wp.Sink.WriteBatch(ctx, pendingTable, pending); err != nil {
+			return err
+		}
+		pending = nil
+		return nil
+	}
+
 	ticker := time.NewTicker(flushInterval)
 	defer ticker.Stop()
-
-	flush := func() error {
-		for table, rows := range buffers {
-			if len(rows) == 0 {
-				continue
-			}
-			if err := wp.Sink.WriteBatch(ctx, table, rows); err != nil {
-				return err
-			}
-			buffers[table] = nil
-		}
-		return wp.Sink.Flush(ctx)
-	}
 
 	for {
 		select {
 		case msg, ok := <-dataCh:
 			if !ok {
-				return flush()
+				return flushPending()
 			}
-			buffers[msg.table] = append(buffers[msg.table], msg.rows...)
-
-			if len(buffers[msg.table]) >= wp.BatchSize {
-				if err := wp.Sink.WriteBatch(ctx, msg.table, buffers[msg.table]); err != nil {
+			// Write immediately if this batch is for a different table or would overflow.
+			if pendingTable != "" && pendingTable != msg.table {
+				if err := flushPending(); err != nil {
 					return err
 				}
-				buffers[msg.table] = nil
+			}
+			pendingTable = msg.table
+			pending = append(pending, msg.rows...)
+
+			if len(pending) >= wp.BatchSize {
+				if err := flushPending(); err != nil {
+					return err
+				}
 			}
 
 		case <-ticker.C:
-			if err := flush(); err != nil {
+			if err := flushPending(); err != nil {
+				return err
+			}
+			if err := wp.Sink.Flush(ctx); err != nil {
 				return err
 			}
 
 		case <-ctx.Done():
-			// Drain remaining data in channel before final flush.
-			for {
-				select {
-				case msg, ok := <-dataCh:
-					if !ok {
-						return flush()
-					}
-					buffers[msg.table] = append(buffers[msg.table], msg.rows...)
-				default:
-					return flush()
-				}
-			}
+			return flushPending()
 		}
 	}
 }

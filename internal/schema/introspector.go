@@ -97,15 +97,20 @@ func fillColumns(ctx context.Context, q Querier, tm *TableMeta) error {
 	defer rows.Close()
 
 	for rows.Next() {
-		var name, dataType, nullable, defaultVal string
+		var name, dataType, nullable string
+		var defaultVal *string
 		if err := rows.Scan(&name, &dataType, &nullable, &defaultVal); err != nil {
 			return err
+		}
+		defStr := ""
+		if defaultVal != nil {
+			defStr = *defaultVal
 		}
 		tm.Columns[name] = &ColumnMeta{
 			Name:         name,
 			DataType:     dataType,
 			IsNullable:   nullable == "YES",
-			DefaultValue: defaultVal,
+			DefaultValue: defStr,
 		}
 	}
 	return rows.Err()

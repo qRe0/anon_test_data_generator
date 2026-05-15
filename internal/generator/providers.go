@@ -2,6 +2,8 @@ package generator
 
 import (
 	"math/rand"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -31,10 +33,18 @@ func newEmailGen(locale string) *emailGen { return &emailGen{} }
 func (g *emailGen) Generate(p Params, r *rand.Rand) any {
 	f := gofakeit.New(uint64(r.Int63()))
 	domain := p.String("domain", "")
+	seq := strconv.FormatInt(r.Int63()&0x7FFFFFFFFFFFFFFF, 36)
+
 	if domain != "" {
-		return f.Username() + "@" + domain
+		return f.Username() + "+" + seq + "@" + domain
 	}
-	return f.Email()
+
+	email := f.Email()
+	at := strings.LastIndex(email, "@")
+	if at >= 0 {
+		return email[:at] + "+" + seq + email[at:]
+	}
+	return email
 }
 
 // ---------------------------------------------------------------------------
@@ -178,15 +188,19 @@ func (g *uuidGen) Generate(_ Params, r *rand.Rand) any {
 
 type autoIncrementGen struct {
 	counter atomic.Int64
+	init    atomic.Bool
 }
 
 func (g *autoIncrementGen) Generate(p Params, r *rand.Rand) any {
 	start := p.Int("start", 1)
 	step := p.Int("step", 1)
-	if g.counter.Load() == 0 {
-		g.counter.Store(int64(start))
+
+	if !g.init.Load() {
+		if g.init.CompareAndSwap(false, true) {
+			g.counter.Store(int64(start - step))
+		}
 	}
-	return g.counter.Add(int64(step)) - int64(step)
+	return g.counter.Add(int64(step))
 }
 
 // ---------------------------------------------------------------------------

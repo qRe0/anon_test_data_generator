@@ -519,6 +519,39 @@ func TestPartialMask_NonString(t *testing.T) {
 	}
 }
 
+func TestPartialMask_PlainDigitsTemplate(t *testing.T) {
+	// User-provided case: generated digits + template pattern.
+	tr := &partialMaskTransformer{}
+	p := Params{"pattern": "+375(**)***-**-##"}
+	result := tr.Apply("1234567890", p)
+	expected := "+375(**)***-**-90"
+	if result != expected {
+		t.Errorf("plain digits + template = %q, want %q", result, expected)
+	}
+}
+
+func TestPartialMask_FewerDigits(t *testing.T) {
+	// Value has 3 digits, pattern has 2 # — shows last 2 digits.
+	tr := &partialMaskTransformer{}
+	p := Params{"pattern": "+375(**)***-**-##"}
+	result := tr.Apply("123", p)
+	expected := "+375(**)***-**-23"
+	if result != expected {
+		t.Errorf("fewer digits in value = %q, want %q", result, expected)
+	}
+}
+
+func TestPartialMask_NotEnoughDigitsForAllHash(t *testing.T) {
+	// Value has 4 digits, pattern has 6 # — masks all # positions.
+	tr := &partialMaskTransformer{}
+	p := Params{"pattern": "###-###"}
+	result := tr.Apply("1234", p)
+	expected := "###-###"
+	if result != expected {
+		t.Errorf("not enough digits = %q, want %q", result, expected)
+	}
+}
+
 func TestNulling(t *testing.T) {
 	tr := &nullingTransformer{}
 	result := tr.Apply("anything", nil)
